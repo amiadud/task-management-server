@@ -17,10 +17,6 @@ app.use(cors({
     credentials:true
   }));
 
-// TaskManagement
-// oVwCB9m9zaQw2Yz4
-  
-
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.35itrev.mongodb.net/?retryWrites=true&w=majority`;
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -31,6 +27,7 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   }
 });
+
 async function run() {
   try {
 
@@ -40,11 +37,12 @@ async function run() {
         res.send('Welcome to my server')
         })
     
-    app.post('/tasks', async (req, res) => {
+    app.post('/tasks',async (req, res) => {
     const newTask = req.body;
     await taskCollection.insertOne(newTask);
     res.send(newTask);
     });
+
 
     app.get('/tasks', async (req, res) => {
       try {
@@ -57,29 +55,40 @@ async function run() {
         res.status(500).json({ message: 'Internal Server Error' });
       }
     });
-//update task 
-app.patch('/tasks/:id', async(req, res) => {
-  try{
-    const id = req.params.id;
-    const updateItem = req.body
-    const filter = { _id: new ObjectId (id) }
-    const updateDoc = {
-      $set: {
-        title: updateItem.petName,
-        description: updateItem.petAge,
-        petLocation: updateItem.petLocation,
-        priority: updateItem.image,
-        deadline: new Date().toDateString(),
+
+    // find task details from database
+    app.get("/task-details/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = {
+        _id: new ObjectId(id),
+      };
+      const result = await taskCollection.findOne(query);
+      console.log(result);
+      res.send(result);
+    });
+
+    //update task 
+    app.put('/task-details/:id', async(req, res) => {
+       try{
+      const id = req.params.id;
+      const updateItem = req.body
+      const filter = { _id: new ObjectId (id) }
+      const updateDoc = {
+        $set: {
+          title: updateItem.title,
+          description: updateItem.description,
+          deadline: updateItem.deadline,
+          priority: updateItem.priority,
+        }
       }
-    }
     const result = await taskCollection.updateOne(filter, updateDoc )
-    res.send(result);
+    res.send( result);
 
   }catch(err){
       console.log(err.message);
   }
 })
-
+ 
 app.put('/tasks/:id', async (req, res) => {
   const taskId = req.params.id;
 
@@ -90,7 +99,7 @@ app.put('/tasks/:id', async (req, res) => {
       { returnDocument: 'after' }
     );
 
-    res.json(updatedTask.value);
+    res.send(updatedTask.value);
   } catch (error) {
     console.error('Error updating task:', error);
     res.status(500).json({ message: 'Internal Server Error' });
@@ -104,7 +113,7 @@ app.put('/tasks/:id', async (req, res) => {
         res.send(result);
       } catch (error) {
         console.error('Error deleting task:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        res.status(500).send({ message: 'Internal Server Error' });
       }
     });
 
